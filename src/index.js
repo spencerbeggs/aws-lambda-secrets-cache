@@ -48,7 +48,7 @@ function fetchSecrets(
   });
 }
 
-export const getSecret = fetchSecrets.bind(null, false);
-export const getSecrets = fetchSecrets.bind(null, false);
-export const getSecureSecret = fetchSecrets.bind(null, true);
-export const getSecureSecrets = fetchSecrets.bind(null, true);
+export const getPlainSecret = fetchSecrets.bind(null, false);
+export const getPlainSecrets = fetchSecrets.bind(null, false);
+export const getSecret = fetchSecrets.bind(null, true);
+export const getSecrets = fetchSecrets.bind(null, true);

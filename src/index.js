@@ -1,11 +1,11 @@
-import { SSM } from "aws-sdk";
+import AWS from "aws-sdk";
 
 const SECRETS = {};
 
 function fetchSecrets(
   decyrpt,
   keys,
-  /* istanbul ignore next */ ssm = new SSM()
+  /* istanbul ignore next */ ssm = new AWS.SSM()
 ) {
   return new Promise((resolve, reject) => {
     if (!keys || (typeof keys !== "string" && !Array.isArray(keys))) {

@@ -1,0 +1,63 @@
+{
+  "name": "@spencerbeggs/aws-lambda-secrets-cache",
+  "description": "Utility module for fetching and caching secrets from AWS Systems Manager Parameter Store.",
+  "version": "0.0.0",
+  "main": "src/index.js",
+  "license": "MIT",
+  "author": "C. Spencer Beggs <spencer@beg.gs>",
+  "scripts": {
+    "build": "pack build",
+    "jest": "jest",
+    "publish": "pack publish",
+    "test": "jest"
+  },
+  "keywords": [
+    "AWS",
+    "Lambda",
+    "Parameter Store",
+    "cache",
+    "secrets"
+  ],
+  "homepage": "https://github.com/spencerbeggs/aws-lambda-secrets-cache#readme",
+  "bugs": {
+    "url": "https://github.com/spencerbeggs/aws-lambda-secrets-cache/issues",
+    "email": "spencer@beg.gs"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "@pika/pack": {
+    "pipeline": [
+      [
+        "@pika/plugin-standard-pkg"
+      ],
+      [
+        "@pika/plugin-build-node"
+      ],
+      [
+        "@pika/plugin-bundle-node",
+        {
+          "minNodeVersion": "10"
+        }
+      ]
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.4.5",
+    "@babel/preset-env": "^7.4.5",
+    "@pika/pack": "^0.3.7",
+    "@pika/plugin-build-node": "^0.4.0",
+    "@pika/plugin-bundle-node": "^0.4.0",
+    "@pika/plugin-standard-pkg": "^0.4.0",
+    "babel-eslint": "^10.0.1",
+    "babel-jest": "^24.8.0",
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^4.3.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "jest": "^24.8.0",
+    "prettier": "^1.17.1"
+  },
+  "peerDependencies": {
+    "aws-sdk": "^2.0.0"
+  }
+}

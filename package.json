@@ -6,9 +6,10 @@
   "license": "MIT",
   "author": "C. Spencer Beggs <spencer@beg.gs>",
   "scripts": {
-    "build": "npx pack build",
+    "build": "pack build",
     "jest": "jest",
-    "publish": "npx pack publish",
+    "publish": "pack publish",
+    "push": "pack build && pack publish",
     "test": "jest"
   },
   "keywords": [

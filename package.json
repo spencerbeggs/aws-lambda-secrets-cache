@@ -27,29 +27,9 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
-  "@pika/pack": {
-    "pipeline": [
-      [
-        "@pika/plugin-standard-pkg"
-      ],
-      [
-        "@pika/plugin-build-node"
-      ],
-      [
-        "@pika/plugin-bundle-node",
-        {
-          "minNodeVersion": "10"
-        }
-      ]
-    ]
-  },
   "devDependencies": {
     "@babel/core": "^7.4.5",
     "@babel/preset-env": "^7.4.5",
-    "@pika/pack": "^0.3.7",
-    "@pika/plugin-build-node": "^0.4.0",
-    "@pika/plugin-bundle-node": "^0.4.0",
-    "@pika/plugin-standard-pkg": "^0.4.0",
     "babel-eslint": "^10.0.1",
     "babel-jest": "^24.8.0",
     "eslint": "^5.16.0",

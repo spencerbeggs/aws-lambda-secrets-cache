@@ -19,7 +19,9 @@
 		"strictPropertyInitialization": false,
 		"pretty": false,
 		"resolveJsonModule": true,
-		"preserveConstEnums": false
+		"preserveConstEnums": false,
+		"declaration": true,
+		"declarationDir": "./dist"
 	},
 	"typeAcquisition": {
 		"enable": true

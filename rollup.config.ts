@@ -50,12 +50,14 @@ export default {
           },
         },
       }),
+    commonjs({
+      extensions,
+      transformMixedEsModules: true,
+    }),
     babel({ extensions, include: ["src/**/*"], babelHelpers: "bundled" }),
     typescript({
       target: "ES2018",
       module: "CommonJS",
-      declaration: true,
-      declarationDir: "dist/types/",
       sourceMap: !isProduction,
       preserveConstEnums: false,
       noEmitOnError: false,
@@ -64,10 +66,6 @@ export default {
       rootDir: join(process.cwd(), "./src"),
       mainFields: ["module", "main"],
       preferBuiltins: true,
-    }),
-    commonjs({
-      extensions,
-      transformMixedEsModules: true,
     }),
     json(),
     isProduction &&

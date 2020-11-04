@@ -8,13 +8,14 @@
   "scripts": {
     "build": "yarn clean && NODE_ENV=production yarn rollup",
     "build-dev": "yarn clean && NODE_ENV=development yarn rollup",
-    "bundle": "yarn clean && yarn build && yarn package",
-    "bundle-dev": "yarn clean && yarn build-dev && yarn package",
+    "bundle": "yarn clean && yarn build && yarn types && yarn package",
+    "bundle-dev": "yarn clean && yarn build-dev && yarn types && yarn package",
     "clean": "rm -rf dist",
     "lint": "tsc -p tsconfig.lint.json --noEmit && eslint '*/**/*.{js,jsx,ts,tsx,json}'",
     "package": "node --experimental-vm-modules --harmony-top-level-await --no-warnings lib/package.mjs ",
     "rollup": "rollup -c rollup.config.ts",
-    "test": "jest"
+    "test": "jest",
+    "types": "tsc -p tsconfig.build.json"
   },
   "keywords": [
     "AWS",

@@ -7,6 +7,9 @@
 		"allowSyntheticDefaultImports": true,
 		"sourceMap": true,
 		"inlineSources": true,
-		"allowJs": true
+		"allowJs": true,
+		"declaration": true,
+		"declarationDir": "./dist",
+		"emitDeclarationOnly": true
 	}
 }

@@ -1,0 +1,12 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"module": "esnext",
+		"moduleResolution": "node",
+		"esModuleInterop": false,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"inlineSources": true,
+		"allowJs": true
+	}
+}

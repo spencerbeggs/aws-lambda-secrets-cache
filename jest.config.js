@@ -1,9 +1,13 @@
-process.env.JEST = true;
-
-module.exports = {
-  testMatch: ["**/__tests__/*.[jt]s?(x)"],
+export default {
+  roots: ["<rootDir>/src", "<rootDir>/__tests__"],
+  testMatch: [
+    "**/__tests__/**/*.+(ts|tsx|js)",
+    "**/?(*.)+(spec|test).+(ts|tsx|js)",
+  ],
+  transform: {
+    "^.+\\.(ts|tsx)$": "ts-jest",
+  },
   collectCoverage: true,
+  coverageDirectory: ".coverage",
   coverageReporters: ["text"],
-  testEnvironment: "node",
-  maxConcurrency: 10
 };

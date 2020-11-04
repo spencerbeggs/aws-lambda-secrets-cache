@@ -1,0 +1,31 @@
+{
+	"eslint.validate": ["javascript", "typescript"],
+	"editor.formatOnSave": false,
+	"[markdown]": {
+		"editor.formatOnSave": false
+	},
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/dist": true,
+		"**/coverage": true
+	},
+	"deno.enable": false,
+	"yaml.format.enable": true,
+	"[yaml]": {
+		"editor.insertSpaces": true,
+		"editor.formatOnSave": true
+	},
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": true,
+		"source.fixAll.markdownlint": true,
+		"source.addMissingImports": true,
+		"source.organizeImports": true
+	},
+	"eslint.options": {
+		"configFile": ".eslintrc"
+	},
+	"npm.packageManager": "yarn",
+	"stylelint.enable": false,
+	"typescript.referencesCodeLens.enabled": true,
+	"typescript.tsdk": "node_modules/typescript/lib"
+}

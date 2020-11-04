@@ -1,0 +1,31 @@
+{
+	"compilerOptions": {
+		"target": "ES2018",
+		"module": "ESNext",
+		"moduleResolution": "node",
+		"lib": ["ESNext"],
+		"esModuleInterop": false,
+        "allowSyntheticDefaultImports": true,
+        "allowJs": true,
+		"strict": true,
+		"noImplicitAny": false,
+		"strictNullChecks": false,
+		"noImplicitThis": true,
+		"alwaysStrict": true,
+		"noUnusedLocals": false,
+		"noUnusedParameters": false,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": false,
+		"strictPropertyInitialization": false,
+		"pretty": false,
+		"resolveJsonModule": true,
+		"preserveConstEnums": false
+	},
+	"typeAcquisition": {
+		"enable": true
+	},
+	"files": [
+		"src/index.ts"
+	],
+	"exclude": ["node_modules", "dist", ".cache", ".vscode", ".github", ".dependabot"]
+}

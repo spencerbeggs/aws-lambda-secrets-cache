@@ -1,7 +1,7 @@
 {
   "name": "@spencerbeggs/aws-lambda-secrets-cache",
   "description": "Utility module for fetching and caching secrets from AWS Systems Manager Parameter Store.",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "module": "src/index.ts",
   "license": "MIT",
   "author": "C. Spencer Beggs <spencer@beg.gs>",

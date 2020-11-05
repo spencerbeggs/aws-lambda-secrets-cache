@@ -27,7 +27,7 @@ jobs:
       - name: Bump version
         run: |
           git config user.name "GitHub Actions"
-          git config user.email noreply@github.com
+          git config user.email actions@github.com
           yarn version --new-version ${{ steps.meta.outputs.semver }} --no-git-tag-version
           git add package.json
           git commit --message "Bump to ${{ steps.meta.outputs.version }}"

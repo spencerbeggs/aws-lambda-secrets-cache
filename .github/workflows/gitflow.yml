@@ -1,0 +1,185 @@
+name: "GitFlow"
+on:
+  push:
+    branches:
+      - "release/[0-9]+.[0-9]+.[0-9]+"
+      - "hotfix/[0-9]+.[0-9]+.[0-9]+"
+jobs:
+  setup:
+    name: Setup release
+    if: github.event.created
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Get metadata
+        id: meta
+        shell: bash
+        run: |
+          RELEASE_TYPE=$(echo "$GITHUB_REF" | awk -F / '{print $3}')
+          RELEASE_TAG=$(echo "$GITHUB_REF" | awk -F / '{print $4}')
+          echo ::set-output name=type::"$RELEASE_TYPE"
+          echo ::set-output name=semver::"$RELEASE_TAG"
+          echo ::set-output name=version::"v$RELEASE_TAG"
+          echo ::set-output name=branch::"$RELEASE_TYPE/$RELEASE_TAG"
+          echo ::set-output name=canary::"canary/$RELEASE_TAG"
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v3
+        with:
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          git-user-signingkey: true
+          git-commit-gpgsign: true
+      - name: Bump version
+        run: |
+          yarn version --new-version ${{ steps.meta.outputs.semver }} --no-git-tag-version
+          git add package.json
+          if git commit -S --message "Bump to ${{ steps.meta.outputs.version }}"; then
+            git push
+          fi
+          echo "::set-output name=commit::$(git rev-parse HEAD)"
+      - name: Create pull request to develop
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: develop
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: ${{ steps.meta.outputs.canary }}
+          pr_draft: false
+          pr_allow_empty: true
+      - name: Create pull request to main
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: main
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: ${{ steps.meta.outputs.branch }}
+          pr_draft: false
+          pr_allow_empty: true
+  test:
+    name: Test and lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: "14"
+      - name: Get metadata
+        id: meta
+        shell: bash
+        run: |
+          echo ::set-output name=os::"$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
+          echo ::set-output name=yarn_dir::"$(yarn cache dir)"
+          echo ::set-output name=yarn_version::"v$(yarn --version | tr '.' '-')"
+          echo ::set-output name=node::"$(node --version | tr '.' '-')"
+      - name: Get Yarn cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ steps.meta.outputs.yarn_dir }}
+          key: ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-
+            ${{ steps.meta.outputs.os }}-yarn-
+            ${{ steps.meta.outputs.os }}-
+      - name: Get node_modules cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ github.workspace }}/node_modules
+          key: ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-
+            ${{ steps.meta.outputs.os }}-node-
+            ${{ steps.meta.outputs.os }}-
+      - name: Install dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true' && steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: yarn install --production=false --frozen-lockfile
+      - name: Lint code
+        run: yarn lint
+      - name: Unit tests
+        run: yarn test
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: "14"
+      - name: Get metadata
+        id: meta
+        shell: bash
+        run: |
+          REPO=$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}')
+          RELEASE_TYPE=$(echo "$GITHUB_REF" | awk -F / '{print $3}')
+          RELEASE_TAG=$(echo "$GITHUB_REF" | awk -F / '{print $4}')
+          PACKAGE="$REPO-$RELEASE_TAG"
+          echo ::set-output name=type::"$RELEASE_TYPE"
+          echo ::set-output name=semver::"$RELEASE_TAG"
+          echo ::set-output name=version::"v$RELEASE_TAG"
+          echo ::set-output name=branch::"$RELEASE_TYPE/$RELEASE_TAG"
+          echo ::set-output name=canary::"canary/$RELEASE_TAG"
+          echo ::set-output name=os::"$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
+          echo ::set-output name=yarn_dir::"$(yarn cache dir)"
+          echo ::set-output name=yarn_version::"v$(yarn --version | tr '.' '-')"
+          echo ::set-output name=node::"$(node --version | tr '.' '-')"
+          echo ::set-output name=package_name::"$PACKAGE"
+          echo ::set-output name=zip_file::"$PACKAGE.zip"
+          echo ::set-output name=tar_file::"$PACKAGE.tar.gz"
+      - name: Get Yarn cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ steps.meta.outputs.yarn_dir }}
+          key: ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-
+            ${{ steps.meta.outputs.os }}-yarn-
+            ${{ steps.meta.outputs.os }}-
+      - name: Get node_modules cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ github.workspace }}/node_modules
+          key: ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-
+            ${{ steps.meta.outputs.os }}-node-
+            ${{ steps.meta.outputs.os }}-
+      - name: Install dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true' && steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: yarn install --production=false --frozen-lockfile
+      - name: Build code
+        run: yarn bundle
+      - uses: actions/upload-artifact@v2
+        name: Upload artifact
+        with:
+          name: ${{ steps.meta.outputs.package_name }}
+          path: dist/**/**
+      - name: Package module
+        uses: papeloto/action-zip@v1
+        with:
+          files: dist
+          recursive: true
+          dest: tmp/${{ steps.meta.outputs.zip_file }}
+      - name: Prepare release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ steps.meta.outputs.version }}
+          files: tmp/${{ steps.meta.outputs.zip_file }}
+          tag_name: ${{ github.ref }}
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

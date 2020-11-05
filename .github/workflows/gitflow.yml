@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Get metadata
         id: meta
         shell: bash
@@ -26,8 +28,8 @@ jobs:
           echo ::set-output name=canary::"canary/$RELEASE_TAG"
       - name: Bump version
         run: |
-          git config user.name "Github Actions"
-          git config user.email github-actions[bot]@users.noreply.github.com
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
           yarn version --new-version ${{ steps.meta.outputs.semver }} --no-git-tag-version
           git add package.json
           git commit --message "Bump to ${{ steps.meta.outputs.version }}"

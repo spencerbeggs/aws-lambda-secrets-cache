@@ -96,55 +96,55 @@ jobs:
           pr_title: ${{ steps.meta.outputs.main_pr }}
           pr_draft: false
           pr_allow_empty: true
-  # test:
-  #   name: Test and lint
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
-  #     - name: Setup node
-  #       uses: actions/setup-node@v2-beta
-  #       with:
-  #         node-version: "14"
-  #     - name: Get metadata
-  #       id: meta
-  #       shell: bash
-  #       run: |
-  #         echo ::set-output name=os::"$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
-  #         echo ::set-output name=yarn_dir::"$(yarn cache dir)"
-  #         echo ::set-output name=yarn_version::"v$(yarn --version | tr '.' '-')"
-  #         echo ::set-output name=node::"$(node --version | tr '.' '-')"
-  #     - name: Get Yarn cache
-  #       uses: actions/cache@v2
-  #       env:
-  #         cache: cache
-  #       with:
-  #         path: ${{ steps.meta.outputs.yarn_dir }}
-  #         key: ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
-  #         restore-keys: |
-  #           ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-
-  #           ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-
-  #           ${{ steps.meta.outputs.os }}-yarn-
-  #           ${{ steps.meta.outputs.os }}-
-  #     - name: Get node_modules cache
-  #       uses: actions/cache@v2
-  #       env:
-  #         cache: cache
-  #       with:
-  #         path: ${{ github.workspace }}/node_modules
-  #         key: ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
-  #         restore-keys: |
-  #           ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-
-  #           ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-
-  #           ${{ steps.meta.outputs.os }}-node-
-  #           ${{ steps.meta.outputs.os }}-
-  #     - name: Install dependencies
-  #       if: steps.yarn-cache.outputs.cache-hit != 'true' && steps.node-modules-cache.outputs.cache-hit != 'true'
-  #       run: yarn install --production=false --frozen-lockfile
-  #     - name: Lint code
-  #       run: yarn lint
-  #     - name: Unit tests
-  #       run: yarn test
+  test:
+    name: Test and lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: "14"
+      - name: Get metadata
+        id: meta
+        shell: bash
+        run: |
+          echo ::set-output name=os::"$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
+          echo ::set-output name=yarn_dir::"$(yarn cache dir)"
+          echo ::set-output name=yarn_version::"v$(yarn --version | tr '.' '-')"
+          echo ::set-output name=node::"$(node --version | tr '.' '-')"
+      - name: Get Yarn cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ steps.meta.outputs.yarn_dir }}
+          key: ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-
+            ${{ steps.meta.outputs.os }}-yarn-
+            ${{ steps.meta.outputs.os }}-
+      - name: Get node_modules cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ github.workspace }}/node_modules
+          key: ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-
+            ${{ steps.meta.outputs.os }}-node-
+            ${{ steps.meta.outputs.os }}-
+      - name: Install dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true' && steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: yarn install --production=false --frozen-lockfile
+      - name: Lint code
+        run: yarn lint
+      - name: Unit tests
+        run: yarn test
   # build:
   #   name: Build package
   #   runs-on: ubuntu-latest

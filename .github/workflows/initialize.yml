@@ -1,0 +1,42 @@
+name: "Initilize GitFlow Release"
+on:
+  create:
+    branches:
+      - "release/[0-9]+.[0-9]+.[0-9]+"
+      - "hotfix/[0-9]+.[0-9]+.[0-9]+"
+jobs:
+  init:
+    name: Initialize release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get metadata
+        id: meta
+        run: |
+          RELEASE_TAG=$(echo "${{ github.event.ref }}" | awk -F / '{print $2}')
+          RELEASE_TYPE=$(echo "${{ github.event.ref }}" | awk -F / '{print $1}')
+          echo ::set-output name=release_type::"$RELEASE_TYPE"
+          echo ::set-output name=main_pr::"$RELEASE_TYPE/$RELEASE_TAG"
+          echo ::set-output name=canary_pr::"canary/$RELEASE_TAG"
+          echo ::set-output name=tag_name::"$RELEASE_TAG"
+          echo ::set-output name=beta_tag_name::"$RELEASE_TAG-beta"
+          echo ::set-output name=release_name::"v$RELEASE_TAG"
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create pull request to develop
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: develop
+          source_branch: ${{ github.event.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: ${{ steps.meta.outputs.canary_pr }}
+          pr_draft: false
+          pr_allow_empty: true
+      - name: Create pull request to main
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: main
+          source_branch: ${{ github.event.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: ${{ steps.meta.outputs.main_pr }}
+          pr_draft: false
+          pr_allow_empty: true

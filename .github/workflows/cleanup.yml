@@ -1,0 +1,49 @@
+name: "Clean up"
+on:
+  delete:
+    branches:
+      - "release/[0-9]+.[0-9]+.[0-9]+"
+      - "hotfix/[0-9]+.[0-9]+.[0-9]+"
+jobs:
+  branch:
+    name: Deleted release or hotfix branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get metadata
+        id: meta
+        shell: bash
+        run: |
+          cat "$GITHUB_EVENT_PATH" | jq -M .
+          RELEASE_TAG=$(echo "${{ github.event.ref }}" | awk -F / '{print $2}')
+          echo ::set-output name=tag_name::"$RELEASE_TAG"
+          echo ::set-output name=beta_tag_name::"$RELEASE_TAG-beta"
+          echo ::set-output name=release_name::"v$RELEASE_TAG"
+      - name: Query releases
+        id: get_releases
+        uses: octokit/graphql-action@v2.x
+        with:
+          query: |
+            repository(name: $repo, owner: $owner) {
+              releases(first: 20) {
+                nodes {
+                  id
+                  isDraft
+                  isPrerelease
+                  name
+                  tagName
+                }
+              }
+            }
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get release
+        id: get_release
+        run: |
+          echo ${{ steps.get_releases.outputs.data }} > releases.json
+          echo ::set-output name=release::"$(jq -r '.data.repository.releases.nodes | map(select(.name | contains("${{ job.meta.outputs.release_name }}")))[0]' releases.json)"
+      - name: Delete draft release
+        if: ${{ fromJson(steps.get_release.output.release) && fromJson(steps.get_release.output.release.isDraft) }}
+        run: |
+          echo "hello, world"

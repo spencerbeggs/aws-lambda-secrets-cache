@@ -1,0 +1,73 @@
+name: "Initilize GitFlow Release"
+on:
+  create:
+    branches:
+      - "release/[0-9]+.[0-9]+.[0-9]+"
+      - "hotfix/[0-9]+.[0-9]+.[0-9]+"
+jobs:
+  init:
+    name: Initialize release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get metadata
+        id: meta
+        run: |
+          RELEASE_TAG=$(echo "${{ github.event.ref }}" | awk -F / '{print $2}')
+          RELEASE_TYPE=$(echo "${{ github.event.ref }}" | awk -F / '{print $1}')
+          echo ::set-output name=release_type::"$RELEASE_TYPE"
+          echo ::set-output name=main_pr::"$RELEASE_TYPE/$RELEASE_TAG"
+          echo ::set-output name=canary_pr::"canary/$RELEASE_TAG"
+          echo ::set-output name=tag_name::"$RELEASE_TAG"
+          echo ::set-output name=beta_tag_name::"$RELEASE_TAG-beta"
+          echo ::set-output name=release_name::"v$RELEASE_TAG"
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v3
+        with:
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          git-user-signingkey: true
+          git-commit-gpgsign: true
+      - name: Create pull request to develop
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: develop
+          source_branch: ${{ github.event.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: ${{ steps.meta.outputs.canary_pr }}
+          pr_draft: false
+          pr_allow_empty: true
+      - name: Create pull request to main
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: main
+          source_branch: ${{ github.event.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: ${{ steps.meta.outputs.main_pr }}
+          pr_draft: false
+          pr_allow_empty: true
+      - name: Bump version
+        id: bump
+        run: |
+          yarn version --new-version ${{ steps.meta.outputs.tag_name }} --no-git-tag-version
+          git add package.json
+          if git commit -S --message "Bump to ${{ steps.meta.outputs.release_name }}"; then
+            git push
+          fi
+          echo "::set-output name=commit::$(git rev-parse HEAD)"
+      - name: Create tag
+        uses: tvdias/github-tagger@v0.0.2
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          tag: ${{ steps.meta.outputs.beta_tag_name }}
+          commit-sha: ${{ steps.bump.outputs.commit }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_name: ${{ steps.meta.outputs.release_name }}
+          tag_name: ${{ steps.bump.outputs.commit }}
+          draft: true
+          prerelease: true

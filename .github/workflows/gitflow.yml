@@ -294,7 +294,7 @@ jobs:
               }
             }
           tag_id: ${{ steps.beta_tag_meta.outputs.beta_tag_id }}
-          target: ${{ needs.init.outputs.commit || github.event.ref }}
+          target: ${{ needs.init.outputs.commit || github.event.after }}
       - name: Upload release assets
         uses: svenstaro/upload-release-action@v2
         with:

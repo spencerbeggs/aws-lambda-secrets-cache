@@ -301,7 +301,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ needs.build.outputs.zip_file }}
           asset_name: ${{ needs.build.outputs.zip_file }}
-          tag: ${{ needs.init.outputs.beta_tag }}
+          tag: ${{ needs.init.outputs.beta_tag_name }}
           overwrite: true
           prerelease: true
           release_name: ${{ needs.init.outputs.release_name }}

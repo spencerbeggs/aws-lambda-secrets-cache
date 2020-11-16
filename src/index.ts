@@ -152,4 +152,6 @@ export class AWSLambdaSecretsCacheClient {
   }
 }
 
-export default new AWSLambdaSecretsCacheClient();
+const defaultClient = new AWSLambdaSecretsCacheClient();
+export const secret = defaultClient.secret;
+export default defaultClient;

@@ -67,7 +67,7 @@ export class AWSLambdaSecretsCacheClient {
   public secret = async (
     secrets: Secrets,
     transforms?: Transform | Transform[]
-  ): Promise<Secret | Secrets> => {
+  ): Promise<Secrets> => {
     const singleSecret = (secrets): secrets is Secret => {
       return !Array.isArray(secrets as Secret);
     };

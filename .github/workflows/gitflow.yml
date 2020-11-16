@@ -232,7 +232,7 @@ jobs:
           path: dist/**/**
   package:
     name: Package
-    needs: [init]
+    needs: [init, test, build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -244,31 +244,22 @@ jobs:
         with:
           node-version: "14"
           scope: ${{ needs.build.outputs.scope }}
-      - name: Wait for build
-        uses: fountainhead/action-wait-for-check@v1.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: Build
       - name: Download artifact
         uses: actions/download-artifact@v2
-        if: success()
         with:
           name: ${{ needs.build.outputs.artifact }}
           path: package
       - name: Zip module
         uses: papeloto/action-zip@v1
-        if: success()
         with:
           files: package
           recursive: true
           dest: ${{ needs.build.outputs.zip_file }}
       - name: Pack module
-        if: success()
         run: npm pack ./package
       - name: Get current beta tag
         id: beta_tag
         uses: octokit/graphql-action@v2.x
-        if: success()
         env:
           GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
         with:
@@ -288,7 +279,6 @@ jobs:
           tag_name: ${{ needs.init.outputs.beta_tag_name }}
       - name: Set beta tag meta
         id: beta_tag_meta
-        if: success()
         run: |
           echo ::set-output name=beta_tag_id::$( echo '${{ steps.beta_tag.outputs.data }}' | jq '.repository.ref?.id | select (.!=null)')
           echo ::set-output name=beta_tag_target::$( echo '${{ steps.beta_tag.outputs.data }}' | jq '.repository.ref?.target?.oid | select (.!=null)')
@@ -308,7 +298,6 @@ jobs:
           target: ${{ needs.init.outputs.commit || github.event.after }}
       - name: Upload release assets
         uses: svenstaro/upload-release-action@v2
-        if: success()
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ needs.build.outputs.zip_file }}
@@ -319,7 +308,6 @@ jobs:
           release_name: ${{ needs.init.outputs.release_name }}
       - name: Upload release assets
         uses: svenstaro/upload-release-action@v2
-        if: success()
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ needs.build.outputs.tar_file }}

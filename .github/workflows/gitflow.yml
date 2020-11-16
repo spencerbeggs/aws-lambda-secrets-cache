@@ -305,6 +305,16 @@ jobs:
           overwrite: true
           prerelease: true
           release_name: ${{ needs.init.outputs.release_name }}
+      - name: Upload release assets
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ needs.build.outputs.tar_file }}
+          asset_name: ${{ needs.build.outputs.tar_file }}
+          tag: ${{ needs.init.outputs.beta_tag_name }}
+          overwrite: true
+          prerelease: true
+          release_name: ${{ needs.init.outputs.release_name }}
   publish:
     name: Publish
     needs: [init, test, build, package]

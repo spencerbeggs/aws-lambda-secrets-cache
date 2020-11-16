@@ -232,7 +232,7 @@ jobs:
           path: dist/**/**
   package:
     name: Package
-    needs: [init, test, build]
+    needs: [init]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -248,7 +248,7 @@ jobs:
         uses: fountainhead/action-wait-for-check@v1.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: build
+          checkName: Build
       - name: Download artifact
         uses: actions/download-artifact@v2
         if: success()

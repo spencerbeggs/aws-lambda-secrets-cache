@@ -6,7 +6,7 @@ on:
       - "hotfix/[0-9]+.[0-9]+.[0-9]+"
 jobs:
   init:
-    name: Initialize release
+    name: Initialize
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.bump.outputs.commit }}
@@ -335,7 +335,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
   cleanup:
-    name: Clean up release
+    name: Clean up
+    needs: [init, test, build, package, publish]
     runs-on: ubuntu-latest
     if: github.event.deleted
     steps:

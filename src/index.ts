@@ -4,6 +4,8 @@ import { inspect } from "util";
 type SecretMap = Record<string, string>;
 type Secret = string | SecretMap;
 type Secrets = Secret | Secret[];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SecretValues = any | any[];
 type LogPayload = string | Array<string> | Record<symbol, unknown> | Error;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Transform = (secret: Secret) => any;
@@ -67,7 +69,7 @@ export class AWSLambdaSecretsCacheClient {
   public secret = async (
     secrets: Secrets,
     transforms?: Transform | Transform[]
-  ): Promise<Secrets> => {
+  ): Promise<SecretValues> => {
     const singleSecret = (secrets): secrets is Secret => {
       return !Array.isArray(secrets as Secret);
     };

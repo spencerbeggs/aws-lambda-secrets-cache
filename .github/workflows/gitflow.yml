@@ -1,0 +1,408 @@
+name: "GitFlow"
+on:
+  push:
+    branches:
+      - "release/[0-9]+.[0-9]+.[0-9]+"
+      - "hotfix/[0-9]+.[0-9]+.[0-9]+"
+jobs:
+  init:
+    name: Initialize
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.bump.outputs.commit }}
+      beta_tag_name: ${{ steps.meta.outputs.beta_tag_name }}
+      upload_url: ${{ steps.create_release.outputs.upload_url || steps.get_upload_url.outputs.upload_url }}
+      release_name: ${{ steps.meta.outputs.release_name }}
+    steps:
+      - name: Get metadata
+        id: meta
+        run: |
+          RELEASE_TAG=$(echo "${{ github.event.ref }}" | awk -F / '{print $4}')
+          RELEASE_TYPE=$(echo "${{ github.event.ref }}" | awk -F / '{print $3}')
+          echo ::set-output name=release_type::"$RELEASE_TYPE"
+          echo ::set-output name=main_pr::"$RELEASE_TYPE/$RELEASE_TAG"
+          echo ::set-output name=canary_pr::"canary/$RELEASE_TAG"
+          echo ::set-output name=tag_name::"$RELEASE_TAG"
+          echo ::set-output name=beta_tag_name::"$RELEASE_TAG-beta"
+          echo ::set-output name=release_name::"v$RELEASE_TAG"
+      - name: Get current beta tag
+        id: beta_tag
+        uses: octokit/graphql-action@v2.x
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
+        with:
+          query: |
+            query GetBetaTag($repo: String!, $owner:String!, $tag_name: String!) {
+              repository(name: $repo, owner: $owner) {
+                ref(qualifiedName: $tag_name) {
+                  id
+                  target {
+                    oid
+                  }
+                }
+              }
+            }
+          owner: ${{ github.event.repository.owner.name }}
+          repo: ${{ github.event.repository.name }}
+          tag_name: ${{ steps.meta.outputs.beta_tag_name }}
+      - name: Set beta tag meta
+        id: beta_tag_meta
+        run: |
+          echo ::set-output name=beta_tag_id::$( echo '${{ steps.beta_tag.outputs.data }}' | jq '.repository.ref?.id | select (.!=null)')
+          echo ::set-output name=beta_tag_target::$( echo '${{ steps.beta_tag.outputs.data }}' | jq '.repository.ref?.target?.oid | select (.!=null)')
+      - name: Checkout code
+        uses: actions/checkout@v2
+        if: github.event.created
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v3
+        if: github.event.created
+        with:
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          git-user-signingkey: true
+          git-commit-gpgsign: true
+      - name: Create pull request to develop
+        uses: repo-sync/pull-request@v2
+        if: github.event.created
+        with:
+          destination_branch: develop
+          source_branch: ${{ github.event.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: ${{ steps.meta.outputs.canary_pr }}
+          pr_draft: false
+          pr_allow_empty: true
+      - name: Create pull request to main
+        uses: repo-sync/pull-request@v2
+        if: github.event.created
+        with:
+          destination_branch: main
+          source_branch: ${{ github.event.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: ${{ steps.meta.outputs.main_pr }}
+          pr_draft: false
+          pr_allow_empty: true
+      - name: Bump version
+        id: bump
+        if: github.event.created
+        run: |
+          yarn version --new-version ${{ steps.meta.outputs.tag_name }} --no-git-tag-version
+          git add package.json
+          if git commit -S --message "Bump to ${{ steps.meta.outputs.release_name }}"; then
+            git push
+          fi
+          echo "::set-output name=commit::$(git rev-parse HEAD)"
+      - name: Create tag
+        uses: tvdias/github-tagger@v0.0.2
+        if: steps.beta_tag_meta.outputs.beta_tag_id == null
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          tag: ${{ steps.meta.outputs.beta_tag_name }}
+          commit-sha: ${{ steps.bump.outputs.commit }}
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    if: github.event.deleted != 1
+    needs: init
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.init.outputs.commit || github.event.ref }}
+      - name: Setup node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: "14"
+      - name: Get metadata
+        id: meta
+        shell: bash
+        run: |
+          echo ::set-output name=os::"$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
+          echo ::set-output name=yarn_dir::"$(yarn cache dir)"
+          echo ::set-output name=yarn_version::"v$(yarn --version | tr '.' '-')"
+          echo ::set-output name=node::"$(node --version | tr '.' '-')"
+      - name: Get Yarn cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ steps.meta.outputs.yarn_dir }}
+          key: ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-
+            ${{ steps.meta.outputs.os }}-yarn-
+            ${{ steps.meta.outputs.os }}-
+      - name: Get node_modules cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ github.workspace }}/node_modules
+          key: ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-
+            ${{ steps.meta.outputs.os }}-node-
+            ${{ steps.meta.outputs.os }}-
+      - name: Install dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true' && steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: yarn install --production=false --frozen-lockfile
+      - name: Lint code
+        run: yarn lint
+      - name: Unit tests
+        run: yarn test
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: github.event.deleted != 1
+    needs: init
+    outputs:
+      artifact: ${{ steps.meta.outputs.artifact }}
+      zip_file: ${{ steps.meta.outputs.zip_file }}
+      zip_file_version: ${{ steps.meta.outputs.zip_file_version }}
+      tar_file: ${{ steps.meta.outputs.tar_file }}
+      tar_file_version: ${{ steps.meta.outputs.tar_file_version }}
+      scope: ${{ steps.meta.outputs.scope }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.init.outputs.commit || github.event.ref }}
+      - name: Setup node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: "14"
+      - name: Get metadata
+        id: meta
+        shell: bash
+        run: |
+          RELEASE_TAG=$(echo "${{ github.event.ref }}" | awk -F / '{print $4}')
+          RELEASE_TYPE=$(echo "${{ github.event.ref }}" | awk -F / '{print $3}')
+          SHORT_COMMIT=$(git rev-parse --short HEAD)
+          if jq ".name" package.json | jq 'startswith("@")'; then
+            SCOPE=$( jq ".name" package.json | jq -r 'split("/")[0]')
+            USER=$( jq ".name" package.json | jq 'split("/")[0]' | jq -r 'ltrimstr("@")' )
+            PACKAGE_NAME=$( jq ".name" package.json | jq -r 'split("/")[1]')
+            ARTIFACT_ROOT="$USER-$PACKAGE_NAME"
+          else
+            SCOPE=""
+            USER=${{ github.context.repo.owner }}
+            PACKAGE_NAME=$( jq -r ".name" package.json )
+            ARTIFACT_ROOT="$PACKAGE_NAME"
+          fi
+          ARTIFACT_NAME="$ARTIFACT_ROOT-$RELEASE_TAG"
+          ARTIFACT_VERSION="$ARTIFACT_NAME-$SHORT_COMMIT"
+          echo ::set-output name=scope::"$SCOPE"
+          echo ::set-output name=artifact::"$ARTIFACT_NAME"
+          echo ::set-output name=zip_file::"$ARTIFACT_NAME.zip"
+          echo ::set-output name=zip_file_version::"$ARTIFACT_VERSION.zip"
+          echo ::set-output name=tar_file::"$ARTIFACT_NAME.tgz"
+          echo ::set-output name=tar_file_version::"$ARTIFACT_VERSION.tgz"
+          echo ::set-output name=os::"$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
+          echo ::set-output name=yarn_dir::"$(yarn cache dir)"
+          echo ::set-output name=yarn_version::"v$(yarn --version | tr '.' '-')"
+          echo ::set-output name=node::"$(node --version | tr '.' '-')"
+      - name: Get Yarn cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ steps.meta.outputs.yarn_dir }}
+          key: ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-yarn-${{ steps.meta.outputs.yarn_version }}-
+            ${{ steps.meta.outputs.os }}-yarn-
+            ${{ steps.meta.outputs.os }}-
+      - name: Get node_modules cache
+        uses: actions/cache@v2
+        env:
+          cache: cache
+        with:
+          path: ${{ github.workspace }}/node_modules
+          key: ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-${{ env.cache }}-
+            ${{ steps.meta.outputs.os }}-node-${{ steps.meta.outputs.node }}-
+            ${{ steps.meta.outputs.os }}-node-
+            ${{ steps.meta.outputs.os }}-
+      - name: Install dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true' && steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: yarn install --production=false --frozen-lockfile
+      - name: Build code
+        run: yarn bundle
+      - uses: actions/upload-artifact@v2
+        name: Upload artifact
+        with:
+          name: ${{ steps.meta.outputs.artifact }}
+          path: dist/**/**
+  package:
+    name: Package
+    needs: [init, test, build]
+    if: github.event.deleted != 1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.init.outputs.commit || github.event.ref }}
+      - name: Setup node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: "14"
+          scope: ${{ needs.build.outputs.scope }}
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ needs.build.outputs.artifact }}
+          path: package
+      - name: Zip module
+        uses: papeloto/action-zip@v1
+        with:
+          files: package
+          recursive: true
+          dest: ${{ needs.build.outputs.zip_file }}
+      - name: Pack module
+        run: npm pack ./package
+      - name: Get current beta tag
+        id: beta_tag
+        uses: octokit/graphql-action@v2.x
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
+        with:
+          query: |
+            query GetBetaTag($repo: String!, $owner:String!, $tag_name: String!) {
+              repository(name: $repo, owner: $owner) {
+                ref(qualifiedName: $tag_name) {
+                  id
+                  target {
+                    oid
+                  }
+                }
+              }
+            }
+          owner: ${{ github.event.repository.owner.name }}
+          repo: ${{ github.event.repository.name }}
+          tag_name: ${{ needs.init.outputs.beta_tag_name }}
+      - name: Set beta tag meta
+        id: beta_tag_meta
+        run: |
+          echo ::set-output name=beta_tag_id::$( echo '${{ steps.beta_tag.outputs.data }}' | jq '.repository.ref?.id | select (.!=null)')
+          echo ::set-output name=beta_tag_target::$( echo '${{ steps.beta_tag.outputs.data }}' | jq '.repository.ref?.target?.oid | select (.!=null)')
+      - name: Update beta tag
+        uses: octokit/graphql-action@v2.x
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
+        with:
+          query: |
+            mutation UpdateBetaTag($tag_id: ID!, $target: GitObjectID!) {
+              updateRef(input: {refId: $tag_id, oid: $target}) {
+                clientMutationId
+              }
+            }
+          tag_id: ${{ steps.beta_tag_meta.outputs.beta_tag_id }}
+          target: ${{ needs.init.outputs.commit || github.event.after }}
+      - name: Upload build tar file to current release asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ needs.build.outputs.tar_file }}
+          asset_name: ${{ needs.build.outputs.tar_file }}
+          tag: ${{ needs.init.outputs.beta_tag_name }}
+          overwrite: true
+          prerelease: true
+          release_name: ${{ needs.init.outputs.release_name }}
+      - name: Upload build zip file to current release asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ needs.build.outputs.zip_file }}
+          asset_name: ${{ needs.build.outputs.zip_file }}
+          tag: ${{ needs.init.outputs.beta_tag_name }}
+          overwrite: true
+          prerelease: true
+          release_name: ${{ needs.init.outputs.release_name }}
+      - name: Upload build tar file to versioned release asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ needs.build.outputs.tar_file }}
+          asset_name: ${{ needs.build.outputs.tar_file_version }}
+          tag: ${{ needs.init.outputs.beta_tag_name }}
+          overwrite: true
+          prerelease: true
+          release_name: ${{ needs.init.outputs.release_name }}
+      - name: Upload build zip file to versioned release asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ needs.build.outputs.zip_file }}
+          asset_name: ${{ needs.build.outputs.zip_file_version }}
+          tag: ${{ needs.init.outputs.beta_tag_name }}
+          overwrite: true
+          prerelease: true
+          release_name: ${{ needs.init.outputs.release_name }}
+  publish:
+    name: Publish
+    needs: [init, test, build, package]
+    if: github.event.release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish to GitHub Packages
+        run: |
+          npm config set registry https://npm.pkg.github.com/
+          npm publish --access public --dry-run ./package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GHP_TOKEN }}
+      - name: Publish to npm
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm publish --access public --dry-run ./package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  cleanup:
+    name: Clean up
+    needs: [init]
+    runs-on: ubuntu-latest
+    if: github.event.deleted
+    steps:
+      - name: Get metadata
+        id: meta
+        run: |
+          RELEASE_TAG=$(echo "${{ github.event.ref }}" | awk -F / '{print $4}')
+          RELEASE_TYPE=$(echo "${{ github.event.ref }}" | awk -F / '{print $3}')
+          echo ::set-output name=release_type::"$RELEASE_TYPE"
+          echo ::set-output name=main_pr::"$RELEASE_TYPE/$RELEASE_TAG"
+          echo ::set-output name=canary_pr::"canary/$RELEASE_TAG"
+          echo ::set-output name=tag_name::"$RELEASE_TAG"
+          echo ::set-output name=beta_tag_name::"$RELEASE_TAG-beta"
+          echo ::set-output name=release_name::"v$RELEASE_TAG"
+      - name: Get beta tag
+        id: beta_tag
+        uses: octokit/graphql-action@v2.x
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
+        with:
+          query: |
+            query GetBetaRelease($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                ref(qualifiedName: "2.0.0-beta") {
+                  id
+                }
+              }
+            }
+          owner: ${{ github.event.repository.owner.name }}
+          repo: ${{ github.event.repository.name }}
+      - name: Delete beta tag
+        uses: octokit/graphql-action@v2.x
+        if: fromJson(steps.beta_tag.outputs.data).data.repository.ref.id
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHP_TOKEN }}
+        with:
+          query: |
+            mutation DeleteBetaTag($tagId: String!) {
+              deleteRef(input: {refId: $tagId}) {
+                clientMutationId
+              }
+            }
+          tagId: ${{ fromJson(steps.beta_tag.outputs.data).data.repository.ref.id }}

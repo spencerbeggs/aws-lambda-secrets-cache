@@ -1,0 +1,23 @@
+name: "Publish"
+on:
+  release:
+    types: [published]
+jobs:
+  publish:
+    name: Publish
+    needs: [init, test, build, package]
+    if: github.event.release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish to GitHub Packages
+        run: |
+          npm config set registry https://npm.pkg.github.com/
+          npm publish --access public --dry-run ./package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GHP_TOKEN }}
+      - name: Publish to npm
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm publish --access public --dry-run ./package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

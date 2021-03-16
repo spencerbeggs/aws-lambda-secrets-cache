@@ -21,7 +21,7 @@ export default {
     format: "commonjs",
     dir: "./dist",
     sourcemap: !isProduction,
-    exports: "default",
+    exports: "named",
   },
   external,
   watch: {
@@ -57,7 +57,7 @@ export default {
     babel({ extensions, include: ["src/**/*"], babelHelpers: "bundled" }),
     typescript({
       target: "ES2018",
-      module: "CommonJS",
+      module: "esnext",
       sourceMap: !isProduction,
       preserveConstEnums: false,
       noEmitOnError: false,

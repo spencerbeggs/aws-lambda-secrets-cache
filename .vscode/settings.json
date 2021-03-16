@@ -1,13 +1,13 @@
 {
-	"eslint.validate": ["javascript", "typescript"],
 	"editor.formatOnSave": false,
-	"[markdown]": {
-		"editor.formatOnSave": false
-	},
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
 	"search.exclude": {
 		"**/node_modules": true,
 		"**/dist": true,
-		"**/coverage": true
+		"**/coverage": true,
+		"**/imagemagick": true,
+		"**/yarn.lock": true,
+		"**/cdk.out": true
 	},
 	"deno.enable": false,
 	"yaml.format.enable": true,
@@ -15,17 +15,31 @@
 		"editor.insertSpaces": true,
 		"editor.formatOnSave": true
 	},
-	"editor.codeActionsOnSave": {
-		"source.fixAll.eslint": true,
-		"source.fixAll.markdownlint": true,
-		"source.addMissingImports": true,
-		"source.organizeImports": true
+	"[typescript]": {
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": true,
+			"source.organizeImports": true,
+			"source.addMissingImports": true
+		}
 	},
+	"[json]": {
+		"editor.formatOnSave": true
+	},
+	"[markdown]": {
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.fixAll.markdownlint": true
+		}
+	},
+	"eslint.validate": ["typescript", "javascript"],
+	"eslint.format.enable": true,
 	"eslint.options": {
 		"configFile": ".eslintrc"
 	},
+	"prettier.enable": true,
 	"npm.packageManager": "yarn",
 	"stylelint.enable": false,
-	"typescript.referencesCodeLens.enabled": true,
+	"json.format.enable": false,
 	"typescript.tsdk": "node_modules/typescript/lib"
 }

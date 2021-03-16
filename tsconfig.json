@@ -1,23 +1,9 @@
 {
+	"extends": "@tsconfig/node14/tsconfig.json",
 	"compilerOptions": {
-		"target": "ES2018",
-		"module": "ESNext",
-		"moduleResolution": "node",
-		"lib": ["ESNext"],
-		"esModuleInterop": false,
-        "allowSyntheticDefaultImports": true,
-        "allowJs": true,
-		"strict": true,
 		"noImplicitAny": false,
-		"strictNullChecks": false,
-		"noImplicitThis": true,
-		"alwaysStrict": true,
-		"noUnusedLocals": false,
-		"noUnusedParameters": false,
-		"noImplicitReturns": true,
-		"noFallthroughCasesInSwitch": false,
-		"strictPropertyInitialization": false,
-		"pretty": false,
+		"moduleResolution": "node",
+		"allowJs": true,
 		"resolveJsonModule": true,
 		"preserveConstEnums": false,
 		"declaration": true,
@@ -26,6 +12,10 @@
 	"typeAcquisition": {
 		"enable": true
 	},
+	  "typeRoots": [
+    	"./node_modules/@types",
+    	"./src/types"
+  	],
 	"files": [
 		"src/index.ts"
 	],

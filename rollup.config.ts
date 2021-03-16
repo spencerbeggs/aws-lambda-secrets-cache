@@ -12,67 +12,65 @@ import pkg from "./package.json";
 const { NODE_ENV = "development" } = process.env;
 const isProduction = NODE_ENV === "production";
 const extensions = [".js", ".jsx", ".ts", ".tsx", ".cjs", ".mjs", ".node"];
-const external = Array.from(
-  new Set(builtins.concat(Object.keys(pkg.peerDependencies)))
-);
+const external = Array.from(new Set(builtins.concat(Object.keys(pkg.dependencies))));
 export default {
-  input: `./${pkg.module}`,
-  output: {
-    format: "commonjs",
-    dir: "./dist",
-    sourcemap: !isProduction,
-    exports: "default",
-  },
-  external,
-  watch: {
-    clearScreen: false,
-    include: "src/**",
-  },
-  treeshake: {
-    moduleSideEffects: "no-external",
-  },
-  plugins: [
-    isProduction &&
-      license({
-        sourcemap: true,
-        banner: {
-          commentStyle: "regular", // The default
-          content: {
-            file: join(__dirname, "LICENSE"),
-            encoding: "utf-8", // Default is utf-8
-          },
-        },
-        thirdParty: {
-          includePrivate: true, // Default is false.
-          output: {
-            file: join(__dirname, "dist", "dependencies.txt"),
-            encoding: "utf-8", // Default is utf-8.
-          },
-        },
-      }),
-    commonjs({
-      extensions,
-      transformMixedEsModules: true,
-    }),
-    babel({ extensions, include: ["src/**/*"], babelHelpers: "bundled" }),
-    typescript({
-      target: "ES2018",
-      module: "CommonJS",
-      sourceMap: !isProduction,
-      preserveConstEnums: false,
-      noEmitOnError: false,
-    }),
-    resolve({
-      rootDir: join(process.cwd(), "./src"),
-      mainFields: ["module", "main"],
-      preferBuiltins: true,
-    }),
-    json(),
-    isProduction &&
-      terser({
-        format: {
-          comments: false,
-        },
-      }),
-  ],
+	input: `./${pkg.module}`,
+	output: {
+		format: "commonjs",
+		dir: "./dist",
+		sourcemap: !isProduction,
+		exports: "named",
+	},
+	external,
+	watch: {
+		clearScreen: false,
+		include: "src/**",
+	},
+	treeshake: {
+		moduleSideEffects: "no-external",
+	},
+	plugins: [
+		isProduction &&
+			license({
+				sourcemap: true,
+				banner: {
+					commentStyle: "regular", // The default
+					content: {
+						file: join(__dirname, "LICENSE"),
+						encoding: "utf-8", // Default is utf-8
+					},
+				},
+				thirdParty: {
+					includePrivate: true, // Default is false.
+					output: {
+						file: join(__dirname, "dist", "dependencies.txt"),
+						encoding: "utf-8", // Default is utf-8.
+					},
+				},
+			}),
+		commonjs({
+			extensions,
+			transformMixedEsModules: true,
+		}),
+		babel({ extensions, include: ["src/**/*"], babelHelpers: "bundled" }),
+		typescript({
+			target: "ES2018",
+			module: "esnext",
+			sourceMap: !isProduction,
+			preserveConstEnums: false,
+			noEmitOnError: false,
+		}),
+		resolve({
+			rootDir: join(process.cwd(), "./src"),
+			mainFields: ["module", "main"],
+			preferBuiltins: true,
+		}),
+		json(),
+		isProduction &&
+			terser({
+				format: {
+					comments: false,
+				},
+			}),
+	],
 };

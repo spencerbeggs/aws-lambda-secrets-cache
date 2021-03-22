@@ -1,0 +1,13 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"esModuleInterop": false,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"inlineSources": true,
+		"allowJs": true,
+		"declaration": true,
+		"declarationDir": "./dist",
+		"emitDeclarationOnly": true
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"extends": "@tsconfig/node14/tsconfig.json",
+	"compilerOptions": {
+		"noImplicitAny": false,
+		"moduleResolution": "node",
+		"allowJs": true,
+		"resolveJsonModule": true,
+		"preserveConstEnums": false,
+		"declaration": true,
+		"declarationDir": "./dist"
+	},
+	"typeAcquisition": {
+		"enable": true
+	},
+	  "typeRoots": [
+    	"./node_modules/@types",
+    	"./src/types"
+  	],
+	"files": [
+		"src/index.ts"
+	],
+	"exclude": ["node_modules", "dist", ".cache", ".vscode", ".github", ".dependabot"]
+}

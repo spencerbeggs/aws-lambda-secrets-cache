@@ -1,2 +1,11 @@
 node_modules
-pkg
+dist
+yarn-error.log
+*.tgz
+*.zip
+jq.sh
+gitflow.sh
+relay.yml
+.secrets
+.env
+ts-jest.log
